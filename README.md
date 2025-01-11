@@ -23,5 +23,5 @@
 6. Run the application
 ```streamlit run app.py```
 
-[!Knowledge graph preview](https://github.com/jaosy/AN6001-knowledge-graph/blob/main/graph.png)
+![Knowledge graph preview](https://github.com/jaosy/AN6001-knowledge-graph/blob/main/graph.png?raw=true)
 
