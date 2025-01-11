@@ -1,3 +1,4 @@
+from calendar import MARCH
 from neo4j import GraphDatabase
 from typing import List, Dict
 from data import mock_data
@@ -20,11 +21,17 @@ class ExamKnowledgeGraph:
 
     @staticmethod
     def _create_nodes_and_relationships(tx, record):
-        # This query remains the same as it already handles modules
         query = """
         MERGE (s:Student {id: $student_id})
         MERGE (q:Question {id: $question_id, topic: $topic})
         MERGE (m:Module {id: $module_id})
+
+        WITH s, q, m
+        OPTIONAL MATCH (prev:Module {id: $module_prerequisite})
+        FOREACH (x IN CASE WHEN prev IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (prev)-[:PREREQUISITE_OF]->(m)
+        )
+
         CREATE (s)-[:ATTEMPTED {
             student_answer: $student_answer,
             correct_answer: $correct_answer,
@@ -32,75 +39,27 @@ class ExamKnowledgeGraph:
         }]->(q)
         MERGE (q)-[:BELONGS_TO]->(m)
         """
+
+        # Ensure record contains all required fields
+        required_fields = {
+            'student_id',
+            'question_id',
+            'topic',
+            'module_id',
+            'module_prerequisite',
+            'student_answer',
+            'correct_answer'
+        }
+
+        # Validate record has all required fields
+        if not all(field in record for field in required_fields):
+            missing_fields = required_fields - record.keys()
+            raise ValueError(f"Missing required fields: {missing_fields}")
+
         tx.run(query, **record)
 
-    def analyze_common_mistakes(self):
-        with self.driver.session() as session:
-            # Enhanced to include module information
-            query = """
-            MATCH (s:Student)-[a:ATTEMPTED]->(q:Question)-[:BELONGS_TO]->(m:Module)
-            WHERE a.student_answer <> a.correct_answer
-            RETURN m.id as module,
-                   q.topic as topic, 
-                   q.id as question,
-                   a.student_answer as wrong_answer,
-                   COUNT(*) as frequency
-            ORDER BY frequency DESC
-            """
-            return session.run(query).data()
-
-    def find_related_questions(self):
-        with self.driver.session() as session:
-            query = """
-            MATCH (s:Student)-[a1:ATTEMPTED]->(q1:Question)-[:BELONGS_TO]->(m1:Module)
-            MATCH (s:Student)-[a2:ATTEMPTED]->(q2:Question)-[:BELONGS_TO]->(m2:Module)
-            WHERE q1.id < q2.id 
-            AND a1.is_correct = false 
-            AND a2.is_correct = false
-            RETURN m1.id as module1,
-                   m2.id as module2,
-                   q1.topic as topic1,
-                   q2.topic as topic2,
-                   COUNT(*) as correlation
-            ORDER BY correlation DESC
-            """
-            return session.run(query).data()
-
-    # New methods to analyze module-specific patterns
-    def analyze_question_difficulty(self):
-        with self.driver.session() as session:
-            query = """
-            MATCH (q:Question)-[:BELONGS_TO]->(m:Module)
-            MATCH (s:Student)-[a:ATTEMPTED]->(q)
-            WITH q, m,
-                COUNT(a) as total_attempts,
-                SUM(CASE WHEN a.is_correct THEN 1 ELSE 0 END) as correct_answers
-            WHERE total_attempts >= 5  // Only consider questions with meaningful sample size
-            RETURN 
-                q.topic as topic,
-                m.id as module,
-                total_attempts as number_of_students,
-                correct_answers as students_correct,
-                total_attempts - correct_answers as students_wrong,
-                ROUND(100.0 * correct_answers / total_attempts) as success_rate
-            ORDER BY success_rate ASC
-            LIMIT 10
-            """
-            return session.run(query).data()
-
-    def analyze_student_module_performance(self):
-        with self.driver.session() as session:
-            query = """
-            MATCH (s:Student)-[a:ATTEMPTED]->(q:Question)-[:BELONGS_TO]->(m:Module)
-            RETURN s.id as student,
-                   m.id as module,
-                   COUNT(a) as questions_attempted,
-                   SUM(CASE WHEN a.is_correct THEN 1 ELSE 0 END) as correct_answers
-            ORDER BY student, module
-            """
-            return session.run(query).data()
-
-    def find_topic_correlations(self):
+    def analyze_topic_relationships(self):
+        """Identify conceptually related areas where students struggle"""
         with self.driver.session() as session:
             query = """
             MATCH (q1:Question)-[:BELONGS_TO]->(m1:Module)
@@ -109,11 +68,41 @@ class ExamKnowledgeGraph:
             MATCH (s:Student)-[a1:ATTEMPTED]->(q1)
             MATCH (s:Student)-[a2:ATTEMPTED]->(q2)
             WHERE a1.is_correct = false AND a2.is_correct = false
-            RETURN q1.topic as topic1,
-                   q2.topic as topic2,
-                   COUNT(*) as correlation,
-                   COLLECT(DISTINCT s.id) as students
-            ORDER BY correlation DESC
+            RETURN
+                m1.id as module1,
+                m2.id as module2,
+                q1.topic as topic1,
+                q2.topic as topic2,
+                COUNT(*) as student_count,
+                COLLECT(DISTINCT s.id) as struggling_students
+            ORDER BY student_count DESC
+            LIMIT 10
+            """
+            return session.run(query).data()
+        
+    def analyze_question_patterns(self):
+        with self.driver.session() as session:
+            query = """
+            MATCH (q:Question)-[:BELONGS_TO]->(m:Module)
+            MATCH (s:Student)-[a:ATTEMPTED]->(q)
+            WITH q, m,
+                COUNT(a) as total_attempts,
+                SUM(CASE WHEN a.is_correct THEN 1 ELSE 0 END) as correct_answers,
+                COLLECT(DISTINCT {
+                    answer: a.student_answer,
+                    correct: a.correct_answer,
+                    student: s.id
+                })[..5] as wrong_attempts
+            WHERE total_attempts >= 3
+            RETURN 
+                m.id as module,
+                q.topic as topic,
+                total_attempts,
+                correct_answers,
+                ROUND(100.0 * correct_answers / total_attempts) as success_rate,
+                [x IN wrong_attempts WHERE x.answer <> x.correct] as sample_wrong_answers
+            ORDER BY success_rate ASC
+            LIMIT 15
             """
             return session.run(query).data()
         

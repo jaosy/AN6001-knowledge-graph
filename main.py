@@ -4,33 +4,28 @@ from data import mock_data
 from pprint import pprint
 
 def main():
+    # replace with your own credentials - neo4j is locally hosted
     graph = ExamKnowledgeGraph(
         uri="bolt://localhost:7687",
         user="neo4j",
         password="password"
     )
 
-    # Clear existing data
+    # clear existing data
     graph.clear_database()
 
-    # Create the graph
+    # create the graph
     graph.create_graph(mock_data)
 
-    # Analyze patterns
-    print("\nCommon Mistakes by Module and Topic:")
-    pprint(graph.analyze_common_mistakes())
+    # analyze patterns
+    # print("\nTopic relationships:")
+    # pprint(graph.analyze_topic_relationships())
 
-    print("\nModule Performance Overview:")
-    pprint(graph.analyze_question_difficulty())
+    # print("\nQ&A patterns:")
+    # pprint(graph.analyze_question_patterns())
 
-    print("\nStudent Performance by Module:")
-    pprint(graph.analyze_student_module_performance())
-
-    print("\nTopic Correlations:")
-    pprint(graph.find_topic_correlations())
-
-    print("\nFind similar students:")
-    pprint(graph.find_similar_students())
+    # print("\nFind similar students:")
+    # pprint(graph.find_similar_students())
 
     # Close connection
     graph.close()
