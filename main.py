@@ -18,14 +18,11 @@ def main():
     graph.create_graph(mock_data)
 
     # analyze patterns
-    # print("\nTopic relationships:")
-    # pprint(graph.analyze_topic_relationships())
+    print("\nDifficult topics:")
+    pprint(graph.analyze_module_transitions())
 
-    # print("\nQ&A patterns:")
-    # pprint(graph.analyze_question_patterns())
-
-    # print("\nFind similar students:")
-    # pprint(graph.find_similar_students())
+    print("\nFind similar students:")
+    pprint(graph.find_similar_students())
 
     # Close connection
     graph.close()

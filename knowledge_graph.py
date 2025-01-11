@@ -58,67 +58,46 @@ class ExamKnowledgeGraph:
 
         tx.run(query, **record)
 
-    def analyze_topic_relationships(self):
-        """Identify conceptually related areas where students struggle"""
+    def analyze_module_transitions(self):
+        """Analyze how students perform between directly connected modules"""
         with self.driver.session() as session:
             query = """
-            MATCH (q1:Question)-[:BELONGS_TO]->(m1:Module)
-            MATCH (q2:Question)-[:BELONGS_TO]->(m2:Module)
-            WHERE q1.topic < q2.topic
-            MATCH (s:Student)-[a1:ATTEMPTED]->(q1)
-            MATCH (s:Student)-[a2:ATTEMPTED]->(q2)
-            WHERE a1.is_correct = false AND a2.is_correct = false
+            MATCH (m1:Module)-[:PREREQUISITE_OF]->(m2:Module)
+            MATCH (s:Student)-[a1:ATTEMPTED]->(q1:Question)-[:BELONGS_TO]->(m1)
+            MATCH (s)-[a2:ATTEMPTED]->(q2:Question)-[:BELONGS_TO]->(m2)
+            WITH s, m1, m2,
+                AVG(CASE WHEN a1.is_correct THEN 1 ELSE 0 END) as m1_score,
+                AVG(CASE WHEN a2.is_correct THEN 1 ELSE 0 END) as m2_score
             RETURN
-                m1.id as module1,
-                m2.id as module2,
-                q1.topic as topic1,
-                q2.topic as topic2,
-                COUNT(*) as student_count,
-                COLLECT(DISTINCT s.id) as struggling_students
-            ORDER BY student_count DESC
-            LIMIT 10
+                s.id as student,
+                m1.id as prerequisite_module,
+                m2.id as next_module,
+                ROUND(m1_score * 100) as prerequisite_score,
+                ROUND(m2_score * 100) as next_module_score
+            ORDER BY student
             """
             return session.run(query).data()
-        
-    def analyze_question_patterns(self):
-        with self.driver.session() as session:
-            query = """
-            MATCH (q:Question)-[:BELONGS_TO]->(m:Module)
-            MATCH (s:Student)-[a:ATTEMPTED]->(q)
-            WITH q, m,
-                COUNT(a) as total_attempts,
-                SUM(CASE WHEN a.is_correct THEN 1 ELSE 0 END) as correct_answers,
-                COLLECT(DISTINCT {
-                    answer: a.student_answer,
-                    correct: a.correct_answer,
-                    student: s.id
-                })[..5] as wrong_attempts
-            WHERE total_attempts >= 3
-            RETURN 
-                m.id as module,
-                q.topic as topic,
-                total_attempts,
-                correct_answers,
-                ROUND(100.0 * correct_answers / total_attempts) as success_rate,
-                [x IN wrong_attempts WHERE x.answer <> x.correct] as sample_wrong_answers
-            ORDER BY success_rate ASC
-            LIMIT 15
-            """
-            return session.run(query).data()
-        
+    
     def find_similar_students(self):
         with self.driver.session() as session:
             query = """
             MATCH (s1:Student)-[a1:ATTEMPTED]->(q:Question)<-[a2:ATTEMPTED]-(s2:Student)
-            WHERE s1.id < s2.id 
+            WHERE s1.id < s2.id
             AND a1.is_correct = false AND a2.is_correct = false
             WITH s1, s2,
-                COUNT(q) as common_wrong_questions
-            WHERE common_wrong_questions >= 3
+                COUNT(q) as common_wrong_questions,
+                COLLECT(DISTINCT {
+                    question: q.id,
+                    topic: q.topic,
+                    s1_answer: a1.student_answer,
+                    s2_answer: a2.student_answer
+                }) as shared_mistakes,
+                COUNT(DISTINCT q.topic) as common_wrong_topics
+            WHERE common_wrong_questions >= 1
             RETURN
-                [s1.id, s2.id] as student_pair, 
-                common_wrong_questions
-            ORDER BY common_wrong_questions DESC
-            LIMIT 5
+                s1.id as student1,
+                s2.id as student2,
+                shared_mistakes
+            ORDER BY common_wrong_questions DESC, common_wrong_topics DESC
             """
             return session.run(query).data()

@@ -15,8 +15,8 @@ mock_data = [
     {"student_id": "S3", "module_id": "A", "module_prerequisite": None, "question_id": "Q3", "student_answer": "A", "correct_answer": "A", "topic": "Topic2"},
 
     {"student_id": "S1", "module_id": "A", "module_prerequisite": None, "question_id": "Q4", "student_answer": "B", "correct_answer": "B", "topic": "Topic2"},
-    {"student_id": "S2", "module_id": "A", "module_prerequisite": None, "question_id": "Q4", "student_answer": "B", "correct_answer": "B", "topic": "Topic2"},
-    {"student_id": "S3", "module_id": "A", "module_prerequisite": None, "question_id": "Q4", "student_answer": "C", "correct_answer": "B", "topic": "Topic2"},
+    {"student_id": "S2", "module_id": "A", "module_prerequisite": None, "question_id": "Q4", "student_answer": "A", "correct_answer": "B", "topic": "Topic2"},
+    {"student_id": "S3", "module_id": "A", "module_prerequisite": None, "question_id": "Q4", "student_answer": "A", "correct_answer": "B", "topic": "Topic2"},
 
     # Module B - Requires Module A
     # Topic 3 (Q5-Q6)
