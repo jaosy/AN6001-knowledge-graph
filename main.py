@@ -1,9 +1,9 @@
-
 from knowledge_graph import ExamKnowledgeGraph
 from data import mock_data
 from pprint import pprint
 
 def main():
+    # connect to neo4j database
     # replace with your own credentials - neo4j is locally hosted
     graph = ExamKnowledgeGraph(
         uri="bolt://localhost:7687",
@@ -18,7 +18,7 @@ def main():
     graph.create_graph(mock_data)
 
     # analyze patterns
-    print("\nDifficult topics:")
+    print("\nAnalyze students' performance by module:")
     pprint(graph.analyze_module_transitions())
 
     print("\nFind similar students:")
