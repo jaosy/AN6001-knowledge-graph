@@ -3,7 +3,7 @@ from chatbot import EduChatbot
 
 def main():
     st.title("Educational Chatbot")
-    st.write("Ask me about student performance and topics!")
+    st.write("Assisted by NLP and Knowledge Graphs 🤖")
 
     # Initialize chatbot
     if 'chatbot' not in st.session_state:
@@ -12,6 +12,29 @@ def main():
     # Initialize chat history
     if 'messages' not in st.session_state:
         st.session_state.messages = []
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": """
+                    👋 Hello! I'm your Educational Analytics Assistant.
+
+                    I can help you analyze:
+                    
+                    • Module transitions and student performance
+                    
+                    • Similar students and common mistake patterns
+                    
+                    • Module prerequisites and relationships
+
+                    Try asking me questions like:
+                    1. "How are students performing between modules?"
+                    2. "Find similar students and their patterns"
+                    3. "Show me module prerequisites"
+
+                    How can I help you today?
+                """
+            }
+        )
 
     # Display chat history
     for message in st.session_state.messages:

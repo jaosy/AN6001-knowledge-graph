@@ -90,7 +90,8 @@ class ExamKnowledgeGraph:
                     question: q.id,
                     topic: q.topic,
                     s1_answer: a1.student_answer,
-                    s2_answer: a2.student_answer
+                    s2_answer: a2.student_answer,
+                    correct_answer: a2.correct_answer
                 }) as shared_mistakes,
                 COUNT(DISTINCT q.topic) as common_wrong_topics
             WHERE common_wrong_questions >= 1
