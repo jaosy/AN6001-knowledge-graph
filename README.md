@@ -19,7 +19,8 @@
 ```python -m spacy download en_core_web_sm```
 3. Set up Neo4j
 4. Ensure Neo4j is running locally on port 7687
-5. Update credentials in `chatbot.py` if needed
-6. Run the application
-```streamlit run app.py```
+5. Run `python main.py` to create the knowledge graph
+6. Update credentials in `chatbot.py` if needed
+7. Run the application
+```python -m streamlit run app.py```
 
