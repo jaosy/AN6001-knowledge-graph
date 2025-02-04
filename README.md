@@ -24,3 +24,5 @@
 7. Run the application
 ```python -m streamlit run app.py```
 
+![Knowledge graph preview](https://github.com/jaosy/AN6001-knowledge-graph/blob/main/graph.png?raw=true)
+
